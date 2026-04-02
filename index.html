@@ -12,8 +12,53 @@
 
     body {
       font-family: 'Nunito', sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       min-height: 100vh;
+      background-color: #0a0a0f;
+      background-image:
+        /* Dark overlay so text stays readable */
+        linear-gradient(rgba(0,0,0,0.52), rgba(0,0,0,0.52)),
+        url('https://cdn.wallpapersafari.com/97/15/VEaWkB.jpg');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Animated arc reactor ring in the background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(90vw, 700px);
+      height: min(90vw, 700px);
+      border-radius: 50%;
+      border: 1.5px solid rgba(0, 195, 255, 0.12);
+      box-shadow:
+        0 0 60px 8px rgba(0,195,255,0.06),
+        inset 0 0 60px 8px rgba(0,195,255,0.04);
+      animation: arcPulse 3.5s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(60vw, 480px);
+      height: min(60vw, 480px);
+      border-radius: 50%;
+      border: 1px solid rgba(200,30,30,0.1);
+      box-shadow: 0 0 40px 4px rgba(200,30,30,0.05);
+      animation: arcPulse 3.5s ease-in-out infinite reverse;
+      pointer-events: none;
+      z-index: 0;
+    }
+    @keyframes arcPulse {
+      0%, 100% { opacity: 0.5; transform: translate(-50%,-50%) scale(1); }
+      50%       { opacity: 1;   transform: translate(-50%,-50%) scale(1.03); }
     }
 
     /* ===== ANALOG CLOCK ===== */
@@ -89,15 +134,18 @@
     /* ===== SPEAK BUTTON ===== */
     .speak-btn {
       transition: all 0.15s ease;
+      background: linear-gradient(135deg, #c8a000, #e8c030) !important;
+      color: #1a0a00 !important;
+      box-shadow: 0 4px 24px rgba(220,170,0,0.45), 0 0 0 2px rgba(220,170,0,0.2);
     }
-    .speak-btn:hover { transform: scale(1.08); }
+    .speak-btn:hover { transform: scale(1.08); box-shadow: 0 6px 30px rgba(220,170,0,0.65); }
     .speak-btn:active { transform: scale(0.95); }
     .speak-btn.speaking {
       animation: pulse-speak 0.6s ease infinite alternate;
     }
     @keyframes pulse-speak {
-      from { box-shadow: 0 0 0 0 rgba(251,191,36,0.7); }
-      to   { box-shadow: 0 0 0 20px rgba(251,191,36,0); }
+      from { box-shadow: 0 0 0 0 rgba(220,170,0,0.8); }
+      to   { box-shadow: 0 0 0 22px rgba(220,170,0,0); }
     }
 
     /* ===== LANGUAGE TOGGLE ===== */
@@ -105,9 +153,9 @@
       transition: all 0.2s ease;
     }
     .lang-btn.active {
-      background: white;
-      color: #7c3aed;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+      background: linear-gradient(135deg, #c41010, #ff4c4c);
+      color: white;
+      box-shadow: 0 2px 12px rgba(200,20,20,0.55);
       transform: scale(1.05);
     }
 
@@ -128,10 +176,10 @@
     .spinner-btn {
       width: 100%;
       padding: 12px 8px;
-      background: rgba(255,255,255,0.15);
-      border: 2px solid rgba(255,255,255,0.3);
+      background: rgba(200,30,20,0.18);
+      border: 1.5px solid rgba(220,80,50,0.4);
       border-radius: 14px;
-      color: white;
+      color: #ffcc44;
       font-size: 1.4rem;
       font-weight: 900;
       cursor: pointer;
@@ -141,16 +189,17 @@
       touch-action: manipulation;
       line-height: 1;
     }
-    .spinner-btn:hover  { background: rgba(255,255,255,0.25); }
-    .spinner-btn:active { background: rgba(255,255,255,0.4); transform: scale(0.93); }
+    .spinner-btn:hover  { background: rgba(200,30,20,0.35); }
+    .spinner-btn:active { background: rgba(200,30,20,0.55); transform: scale(0.93); }
     .spinner-val {
       font-size: 2.4rem;
       font-weight: 900;
-      color: white;
+      color: #ffcc44;
       text-align: center;
       padding: 6px 0;
       min-width: 3rem;
       letter-spacing: 1px;
+      text-shadow: 0 0 12px rgba(255,200,60,0.5);
     }
 
     /* Responsive */
@@ -160,10 +209,10 @@
     }
   </style>
 </head>
-<body class="flex flex-col items-center justify-center px-4 py-10 min-h-screen">
+<body class="flex flex-col items-center justify-center px-4 py-10 min-h-screen" style="position:relative;z-index:1">
 
   <!-- Title -->
-  <div class="text-center mb-8 fade-in-up">
+  <div class="text-center mb-8 fade-in-up" style="position:relative;z-index:2">
     <h1 class="text-4xl sm:text-5xl font-black text-white drop-shadow-lg tracking-tight">
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120" width="48" height="48" style="display:inline-block;vertical-align:middle;margin-right:10px"
   aria-label="Iron Man">
@@ -205,7 +254,7 @@
   </div>
 
   <!-- Language Toggle -->
-  <div class="flex items-center gap-2 mb-8 bg-purple-800 bg-opacity-50 rounded-full p-1.5 fade-in-up" style="animation-delay:0.1s">
+  <div class="flex items-center gap-2 mb-8 rounded-full p-1.5 fade-in-up" style="animation-delay:0.1s;background:rgba(40,5,5,0.7);border:1px solid rgba(200,30,20,0.35);z-index:2;position:relative">
     <button id="btn-de" class="lang-btn active px-5 py-2 rounded-full font-bold text-white text-sm" onclick="setLang('de')">
       🇩🇪 Deutsch
     </button>
@@ -215,49 +264,50 @@
   </div>
 
   <!-- Clocks Container -->
-  <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-20 w-full max-w-4xl">
+  <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-20 w-full max-w-4xl" style="position:relative;z-index:2">
 
     <!-- Analog Clock Card -->
     <div class="fade-in-up flex-1 flex flex-col items-center" style="animation-delay:0.2s">
-      <div class="bg-white bg-opacity-15 backdrop-blur-sm rounded-3xl p-8 shadow-2xl flex flex-col items-center gap-6">
+      <div class="rounded-3xl p-8 shadow-2xl flex flex-col items-center gap-6" style="background:rgba(20,5,5,0.75);border:1px solid rgba(200,40,20,0.4);backdrop-filter:blur(8px);box-shadow:0 8px 40px rgba(180,20,10,0.25),0 0 0 1px rgba(200,40,20,0.2)">
         <h2 id="analog-title" class="text-white font-bold text-xl tracking-wide">🕐 Analoguhr</h2>
 
         <!-- The Analog Clock (SVG) -->
         <svg id="analog-clock" viewBox="0 0 280 280" aria-label="Analoge Uhr" role="img">
           <defs>
             <radialGradient id="clockFaceBg" cx="35%" cy="30%" r="70%">
-              <stop offset="0%"   stop-color="#fff9f0"/>
-              <stop offset="100%" stop-color="#ffecd2"/>
+              <stop offset="0%"   stop-color="#2a1010"/>
+              <stop offset="60%"  stop-color="#1a0808"/>
+              <stop offset="100%" stop-color="#0f0404"/>
             </radialGradient>
           </defs>
           <!-- Outer decorative rings -->
-          <circle cx="140" cy="140" r="139" fill="#c1440e" opacity="0.5"/>
-          <circle cx="140" cy="140" r="136" fill="#e76f51"/>
-          <circle cx="140" cy="140" r="128" fill="#f4a261"/>
+          <circle cx="140" cy="140" r="139" fill="#4a0a0a" opacity="0.6"/>
+          <circle cx="140" cy="140" r="136" fill="#8b1010"/>
+          <circle cx="140" cy="140" r="128" fill="#c8841a"/>
           <!-- Clock face -->
           <circle cx="140" cy="140" r="120" fill="url(#clockFaceBg)"/>
-          <circle cx="140" cy="140" r="120" fill="none" stroke="rgba(0,0,0,0.07)" stroke-width="3"/>
+          <circle cx="140" cy="140" r="120" fill="none" stroke="rgba(200,100,20,0.3)" stroke-width="2"/>
           <!-- Ticks (injected by JS) -->
           <g id="clock-ticks"></g>
           <!-- Numbers (injected by JS) -->
           <g id="clock-numbers"></g>
-          <!-- Hour hand -->
+          <!-- Hour hand (gold) -->
           <g id="hour-hand-g" class="hand-group" transform="rotate(0,140,140)">
-            <rect x="136" y="58" width="8" height="90" rx="4" fill="#2d3748"/>
-            <rect x="137.5" y="60" width="3" height="28" rx="1.5" fill="#718096" opacity="0.5"/>
+            <rect x="136" y="58" width="8" height="90" rx="4" fill="#c8a020"/>
+            <rect x="137.5" y="60" width="3" height="28" rx="1.5" fill="#ffd060" opacity="0.6"/>
           </g>
-          <!-- Minute hand -->
+          <!-- Minute hand (red) -->
           <g id="minute-hand-g" class="hand-group" transform="rotate(0,140,140)">
-            <rect x="137.5" y="30" width="5" height="118" rx="3" fill="#e53e3e"/>
-            <rect x="138.5" y="32" width="2" height="38" rx="1" fill="#fc8181" opacity="0.6"/>
+            <rect x="137.5" y="30" width="5" height="118" rx="3" fill="#cc1111"/>
+            <rect x="138.5" y="32" width="2" height="38" rx="1" fill="#ff5555" opacity="0.7"/>
           </g>
-          <!-- Center cap -->
-          <circle cx="140" cy="140" r="9" fill="#1a202c"/>
-          <circle cx="140" cy="140" r="5.5" fill="white"/>
-          <circle cx="140" cy="140" r="3"   fill="#2d3748"/>
+          <!-- Center cap (arc reactor style) -->
+          <circle cx="140" cy="140" r="10" fill="#c8a020"/>
+          <circle cx="140" cy="140" r="6.5" fill="#0a0a0f"/>
+          <circle cx="140" cy="140" r="3.5" fill="#00d4ff" opacity="0.9"/>
         </svg>
 
-        <p id="drag-hint" class="text-purple-200 text-sm font-semibold text-center">
+        <p id="drag-hint" class="text-sm font-semibold text-center" style="color:#f4a261">
           ✋ Zeiger ziehen!
         </p>
       </div>
@@ -267,11 +317,11 @@
     <div class="fade-in-up flex-1 flex flex-col items-center gap-8" style="animation-delay:0.35s">
 
       <!-- Digital Clock Card -->
-      <div class="bg-white bg-opacity-15 backdrop-blur-sm rounded-3xl p-8 shadow-2xl flex flex-col items-center gap-4 w-full max-w-sm">
+      <div class="rounded-3xl p-8 shadow-2xl flex flex-col items-center gap-4 w-full max-w-sm" style="background:rgba(20,5,5,0.75);border:1px solid rgba(200,40,20,0.4);backdrop-filter:blur(8px);box-shadow:0 8px 40px rgba(180,20,10,0.25),0 0 0 1px rgba(200,40,20,0.2)">
         <div class="flex items-center justify-between w-full">
           <h2 id="digital-title" class="text-white font-bold text-xl tracking-wide">💡 Digitaluhr</h2>
           <!-- 12h / 24h toggle -->
-          <div class="flex items-center gap-1 bg-purple-900 bg-opacity-60 rounded-full p-1">
+          <div class="flex items-center gap-1 rounded-full p-1" style="background:rgba(40,5,5,0.8);border:1px solid rgba(200,30,20,0.3)">
             <button id="btn-12h" class="lang-btn active px-3 py-1 rounded-full font-bold text-white text-xs" onclick="setHourMode(12)">12h</button>
             <button id="btn-24h" class="lang-btn px-3 py-1 rounded-full font-bold text-white text-xs" onclick="setHourMode(24)">24h</button>
           </div>
@@ -290,7 +340,7 @@
         <div class="flex items-center gap-4 w-full">
           <!-- Hours -->
           <div class="flex flex-col items-center flex-1 gap-1">
-            <label id="label-hours" class="text-purple-200 text-xs font-bold mb-1 uppercase tracking-widest">Stunden</label>
+            <label id="label-hours" class="text-xs font-bold mb-1 uppercase tracking-widest" style="color:#f4a261">Stunden</label>
             <button class="spinner-btn" id="btn-h-up"   onpointerdown="startStep('h', 1)"  onpointerup="stopStep()" onpointerleave="stopStep()">&#9650;</button>
             <div id="spinner-h-val" class="spinner-val">12</div>
             <button class="spinner-btn" id="btn-h-down" onpointerdown="startStep('h', -1)" onpointerup="stopStep()" onpointerleave="stopStep()">&#9660;</button>
@@ -298,7 +348,7 @@
           <div class="text-white text-3xl font-black self-center pb-1">:</div>
           <!-- Minutes -->
           <div class="flex flex-col items-center flex-1 gap-1">
-            <label id="label-minutes" class="text-purple-200 text-xs font-bold mb-1 uppercase tracking-widest">Minuten</label>
+            <label id="label-minutes" class="text-xs font-bold mb-1 uppercase tracking-widest" style="color:#f4a261">Minuten</label>
             <button class="spinner-btn" id="btn-m-up"   onpointerdown="startStep('m', 1)"  onpointerup="stopStep()" onpointerleave="stopStep()">&#9650;</button>
             <div id="spinner-m-val" class="spinner-val">00</div>
             <button class="spinner-btn" id="btn-m-down" onpointerdown="startStep('m', -1)" onpointerup="stopStep()" onpointerleave="stopStep()">&#9660;</button>
@@ -307,12 +357,12 @@
       </div>
 
       <!-- Current Time Label -->
-      <div id="time-label" class="text-center px-6 py-3 bg-white bg-opacity-20 rounded-2xl text-white font-bold text-lg min-w-64 shadow-lg">
+      <div id="time-label" class="text-center px-6 py-3 rounded-2xl font-bold text-lg shadow-lg" style="background:rgba(180,20,0,0.25);border:1px solid rgba(220,80,40,0.4);color:#ffd580;min-width:16rem;text-shadow:0 0 12px rgba(255,180,60,0.4)">
         <span id="time-text">Es ist zwölf Uhr</span>
       </div>
 
       <!-- Speak Button -->
-      <button id="speak-btn" class="speak-btn bg-yellow-400 hover:bg-yellow-300 text-purple-900 font-black text-xl px-10 py-5 rounded-2xl shadow-xl flex items-center gap-3"
+      <button id="speak-btn" class="speak-btn font-black text-xl px-10 py-5 rounded-2xl flex items-center gap-3"
         onclick="speakTime()" aria-label="Zeit vorlesen">
         <span class="text-3xl">🔊</span>
         <span id="speak-label">Uhrzeit vorlesen!</span>
@@ -322,8 +372,8 @@
   </div>
 
   <!-- Fun tips -->
-  <div class="mt-10 text-center fade-in-up" style="animation-delay:0.5s">
-    <p class="text-purple-200 text-sm font-semibold opacity-80">
+  <div class="mt-10 text-center fade-in-up" style="animation-delay:0.5s;position:relative;z-index:2">
+    <p class="text-sm font-semibold opacity-80" style="color:#f4a261">
       💡 <span id="tip-text">Tipp: Drehe die Zeiger und übe die Uhrzeit!</span>
     </p>
   </div>
@@ -358,7 +408,7 @@ let hourMode = 12;        // 12 | 24
     line.setAttribute('y1', cy + r1 * Math.sin(angle));
     line.setAttribute('x2', cx + r2 * Math.cos(angle));
     line.setAttribute('y2', cy + r2 * Math.sin(angle));
-    line.setAttribute('stroke',         isMajor ? '#1a202c'  : '#94a3b8');
+    line.setAttribute('stroke',         isMajor ? '#e8a820'  : '#6b4010');
     line.setAttribute('stroke-width',   isMajor ? '3.5'      : '1.5');
     line.setAttribute('stroke-linecap', 'round');
     ticksG.appendChild(line);
@@ -376,7 +426,7 @@ let hourMode = 12;        // 12 | 24
     text.setAttribute('font-size',         '17');
     text.setAttribute('font-weight',       '800');
     text.setAttribute('font-family',       'Nunito, sans-serif');
-    text.setAttribute('fill',              '#2d3748');
+    text.setAttribute('fill',              '#e8c040');
     text.textContent = n;
     numsG.appendChild(text);
   });
@@ -497,18 +547,14 @@ function speakTime() {
   const btn  = document.getElementById('speak-btn');
 
   if (lang === 'vi') {
-    // iOS/macOS Safari has a good built-in vi-VN voice via Web Speech API.
-    // Google Translate TTS is blocked by Safari (CORS/autoplay policy).
-    // Strategy: use Web Speech if vi voice available, else fall back to Google TTS.
-    if (window.speechSynthesis) {
-      const voices = window.speechSynthesis.getVoices();
-      const viVoice = voices.find(v => v.lang.startsWith('vi'));
-      if (viVoice) {
-        speakWebSpeech(text, 'vi-VN');
-        return;
-      }
+    // Safari blocks Google TTS (CORS/autoplay) → use Web Speech vi-VN.
+    // Chrome/Firefox/Edge: Google Translate TTS has better quality.
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    if (isSafari && window.speechSynthesis) {
+      speakWebSpeech(text, 'vi-VN');
+      return;
     }
-    // No vi-VN voice found (desktop Chrome/Firefox without extra voices)
+    // Google Translate TTS for Chrome/Firefox/Edge
     if (gttsAudio) {
       gttsAudio.onended = null;
       gttsAudio.onerror = null;
@@ -607,7 +653,15 @@ function setLang(l) {
   function onPointerMove(e) {
     if (!dragging) return;
     const angle = getAngle(e);
+
     if (dragging === 'minute') {
+      // Apply raw float angle directly → smooth, no snapping
+      document.getElementById('minute-hand-g').setAttribute('transform', `rotate(${angle}, 140, 140)`);
+      // Hour hand moves continuously with minute (0.5 deg per minute deg)
+      const continuousHourDeg = (currentHours % 12) * 30 + (angle / 6) * 0.5;
+      document.getElementById('hour-hand-g').setAttribute('transform', `rotate(${continuousHourDeg}, 140, 140)`);
+
+      // Rounded minute for state & digital display
       const newM = Math.round(angle / 6) % 60;
       let newH = currentHours;
       if (currentMinutes > 45 && newM < 15) {
@@ -616,14 +670,29 @@ function setLang(l) {
         newH = currentHours - 1;
         if (newH < 1) newH = 12;
       }
-      updateAll(newH, newM, 12);
-    } else {
-      updateAll(Math.round(angle / 30) % 12 || 12, currentMinutes, 12);
+      // Update state directly (do NOT call renderHands — we already set SVG above)
+      currentHours   = ((newH % 12) + 12) % 12 || 12;
+      currentHours24 = currentHours;
+      currentMinutes = newM;
+      renderDigital(currentHours, currentHours24, currentMinutes);
+      updateTimeLabel();
+
+    } else { // hour hand
+      document.getElementById('hour-hand-g').setAttribute('transform', `rotate(${angle}, 140, 140)`);
+      const newH = Math.round(angle / 30) % 12 || 12;
+      currentHours   = ((newH % 12) + 12) % 12 || 12;
+      currentHours24 = currentHours;
+      renderDigital(currentHours, currentHours24, currentMinutes);
+      updateTimeLabel();
     }
   }
 
   function onPointerUp() {
-    if (dragging) document.getElementById(dragging + '-hand-g').classList.remove('dragging');
+    if (dragging) {
+      document.getElementById(dragging + '-hand-g').classList.remove('dragging');
+      // Final snap: ensure SVG matches rounded state
+      renderHands(currentHours, currentMinutes);
+    }
     dragging = null;
   }
 
