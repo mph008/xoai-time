@@ -537,66 +537,88 @@ function buildVietnamese(h, m) {
 // ============================================================
 // SPEAK TIME
 // ============================================================
-let gttsAudio = null; // reuse audio element
+let _cachedVoices = [];
+let gttsAudio = null;
+
+if (window.speechSynthesis) {
+  window.speechSynthesis.onvoiceschanged = () => {
+    _cachedVoices = window.speechSynthesis.getVoices();
+  };
+  _cachedVoices = window.speechSynthesis.getVoices();
+}
+
+const _isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
 function speakTime() {
-  // Always stop any ongoing Web Speech API audio first
+  // Stop any ongoing speech first
   if (window.speechSynthesis) window.speechSynthesis.cancel();
+  if (gttsAudio) {
+    gttsAudio.onended = null;
+    gttsAudio.onerror = null;
+    gttsAudio.pause();
+    gttsAudio.src = '';
+    gttsAudio = null;
+  }
 
   const text = buildTimeString(currentHours, currentMinutes, lang);
   const btn  = document.getElementById('speak-btn');
 
   if (lang === 'vi') {
-    // Safari blocks Google TTS (CORS/autoplay) → use Web Speech vi-VN.
-    // Chrome/Firefox/Edge: Google Translate TTS has better quality.
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    if (isSafari && window.speechSynthesis) {
+    if (_isSafari) {
+      // Safari blocks Google TTS → use Web Speech vi-VN (iOS/macOS have it built-in)
       speakWebSpeech(text, 'vi-VN');
-      return;
+    } else {
+      // Chrome/Firefox/Edge: Google Translate TTS — confirmed best quality for Vietnamese
+      // Try googleapis endpoint first (less restricted), fall back to translate.google.com
+      const urls = [
+        'https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl=vi&ttsspeed=0.85&q=' + encodeURIComponent(text),
+        'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=vi&ttsspeed=0.85&q='  + encodeURIComponent(text),
+      ];
+      tryGttsFallback(urls, 0, text, btn);
     }
-    // Google Translate TTS for Chrome/Firefox/Edge
-    if (gttsAudio) {
-      gttsAudio.onended = null;
-      gttsAudio.onerror = null;
-      gttsAudio.pause();
-      gttsAudio.src = '';
-    }
-    const url = 'https://translate.google.com/translate_tts?ie=UTF-8'
-      + '&q=' + encodeURIComponent(text)
-      + '&tl=vi&ttsspeed=0.8&client=tw-ob';
-    gttsAudio = new Audio(url);
-    gttsAudio.volume = 1;
-    btn.classList.add('speaking');
-    gttsAudio.onended = () => btn.classList.remove('speaking');
-    gttsAudio.onerror = () => { btn.classList.remove('speaking'); speakWebSpeech(text, 'vi-VN'); };
-    gttsAudio.play().catch(() => { btn.classList.remove('speaking'); speakWebSpeech(text, 'vi-VN'); });
   } else {
-    // --- German: Web Speech API (good native support on Windows/macOS) ---
     speakWebSpeech(text, 'de-DE');
   }
+}
+
+function tryGttsFallback(urls, idx, text, btn) {
+  if (idx >= urls.length) {
+    // All URLs failed → fall back to Web Speech
+    speakWebSpeech(text, 'vi-VN');
+    return;
+  }
+  const audio = new Audio(urls[idx]);
+  audio.volume = 1;
+  btn.classList.add('speaking');
+  audio.onended = () => { btn.classList.remove('speaking'); };
+  audio.onerror = () => {
+    btn.classList.remove('speaking');
+    tryGttsFallback(urls, idx + 1, text, btn);
+  };
+  audio.play().catch(() => {
+    btn.classList.remove('speaking');
+    tryGttsFallback(urls, idx + 1, text, btn);
+  });
+  gttsAudio = audio;
 }
 
 function speakWebSpeech(text, langCode) {
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
-  const btn  = document.getElementById('speak-btn');
+  const btn   = document.getElementById('speak-btn');
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang  = langCode;
-  utter.rate  = 0.85;
-  utter.pitch = 1.1;
-  const voices = window.speechSynthesis.getVoices();
-  const preferred = voices.find(v => v.lang.startsWith(langCode));
-  if (preferred) utter.voice = preferred;
+  utter.rate  = 0.88;
+  utter.pitch = 1.05;
+  // Only pick a voice that explicitly matches — don't fall back to wrong language voice
+  const voices = _cachedVoices.length ? _cachedVoices : window.speechSynthesis.getVoices();
+  const voice  = voices.find(v => v.lang === langCode) ||
+                 voices.find(v => v.lang.startsWith(langCode.slice(0, 2)));
+  if (voice) utter.voice = voice;
   btn.classList.add('speaking');
-  utter.onend  = () => btn.classList.remove('speaking');
+  utter.onend   = () => btn.classList.remove('speaking');
   utter.onerror = () => btn.classList.remove('speaking');
   window.speechSynthesis.speak(utter);
-}
-
-// Pre-warm voice list (Safari loads voices asynchronously)
-if (window.speechSynthesis) {
-  window.speechSynthesis.getVoices();
-  window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
 }
 
 // ============================================================
