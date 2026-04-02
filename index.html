@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🦾 Xoài học giờ</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+
+    /* ===== ANALOG CLOCK ===== */
+    /* ===== ANALOG CLOCK (SVG — scales perfectly on all sizes) ===== */
+    #analog-clock {
+      display: block;
+      width: 100%;
+      max-width: 280px;
+      touch-action: none;
+      user-select: none;
+      cursor: grab;
+      filter: drop-shadow(0 12px 28px rgba(0,0,0,0.38));
+    }
+    #analog-clock:active { cursor: grabbing; }
+    .hand-group { cursor: grab; }
+    .hand-group:active { cursor: grabbing; }
+    .hand-group.dragging { filter: drop-shadow(0 0 8px rgba(255,220,50,0.95)); }
+
+    /* ===== DIGITAL CLOCK ===== */
+    .digital-display {
+      font-family: 'Courier New', monospace;
+      font-size: 3.5rem;
+      font-weight: 700;
+      letter-spacing: 4px;
+      color: #00ff88;
+      text-shadow:
+        0 0 10px #00ff88,
+        0 0 20px #00ff88,
+        0 0 40px rgba(0,255,136,0.5);
+    }
+
+    .digital-screen {
+      background: #0a0a1a;
+      border-radius: 16px;
+      padding: 24px 40px;
+      box-shadow:
+        inset 0 2px 10px rgba(0,0,0,0.8),
+        0 0 0 4px #334155,
+        0 0 0 8px #1e293b,
+        0 8px 30px rgba(0,0,0,0.4);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .digital-screen::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,255,136,0.03) 2px,
+        rgba(0,255,136,0.03) 4px
+      );
+      pointer-events: none;
+    }
+
+    /* Colon blink */
+    .colon {
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    /* ===== SPEAK BUTTON ===== */
+    .speak-btn {
+      transition: all 0.15s ease;
+    }
+    .speak-btn:hover { transform: scale(1.08); }
+    .speak-btn:active { transform: scale(0.95); }
+    .speak-btn.speaking {
+      animation: pulse-speak 0.6s ease infinite alternate;
+    }
+    @keyframes pulse-speak {
+      from { box-shadow: 0 0 0 0 rgba(251,191,36,0.7); }
+      to   { box-shadow: 0 0 0 20px rgba(251,191,36,0); }
+    }
+
+    /* ===== LANGUAGE TOGGLE ===== */
+    .lang-btn {
+      transition: all 0.2s ease;
+    }
+    .lang-btn.active {
+      background: white;
+      color: #7c3aed;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+      transform: scale(1.05);
+    }
+
+    /* ===== DRAG HINT ===== */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in-up { animation: fadeInUp 0.6s ease forwards; }
+
+    /* ===== TIME LABEL ===== */
+    #time-label {
+      min-height: 2.5rem;
+      transition: opacity 0.3s ease;
+    }
+
+    /* ===== SPINNER BUTTONS ===== */
+    .spinner-btn {
+      width: 100%;
+      padding: 12px 8px;
+      background: rgba(255,255,255,0.15);
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 14px;
+      color: white;
+      font-size: 1.4rem;
+      font-weight: 900;
+      cursor: pointer;
+      transition: background 0.1s, transform 0.1s;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+      line-height: 1;
+    }
+    .spinner-btn:hover  { background: rgba(255,255,255,0.25); }
+    .spinner-btn:active { background: rgba(255,255,255,0.4); transform: scale(0.93); }
+    .spinner-val {
+      font-size: 2.4rem;
+      font-weight: 900;
+      color: white;
+      text-align: center;
+      padding: 6px 0;
+      min-width: 3rem;
+      letter-spacing: 1px;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .digital-display { font-size: 2.6rem; }
+      .digital-screen { padding: 18px 28px; }
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-center px-4 py-10 min-h-screen">
+
+  <!-- Title -->
+  <div class="text-center mb-8 fade-in-up">
+    <h1 class="text-4xl sm:text-5xl font-black text-white drop-shadow-lg tracking-tight">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120" width="48" height="48" style="display:inline-block;vertical-align:middle;margin-right:10px"
+  aria-label="Iron Man">
+  <!-- Helmet body -->
+  <path d="M50 4 C28 4 14 20 14 42 L14 72 C14 90 30 108 50 112 C70 108 86 90 86 72 L86 42 C86 20 72 4 50 4Z" fill="#C41010"/>
+  <!-- Top highlight -->
+  <path d="M50 4 C28 4 14 20 14 42 L14 50 Q32 40 50 40 Q68 40 86 50 L86 42 C86 20 72 4 50 4Z" fill="#E82020"/>
+  <!-- Center forehead ridge -->
+  <rect x="47" y="4" width="6" height="34" rx="3" fill="#B00E0E"/>
+  <!-- Gold chin plate -->
+  <path d="M22 74 L22 82 C22 96 34 108 50 110 C66 108 78 96 78 82 L78 74 C66 80 34 80 22 74Z" fill="#E8A020"/>
+  <!-- Gold side cheeks -->
+  <path d="M14 56 L14 74 L24 78 L24 52Z" fill="#D4901C"/>
+  <path d="M86 56 L86 74 L76 78 L76 52Z" fill="#D4901C"/>
+  <!-- Gold chin center line -->
+  <line x1="50" y1="82" x2="50" y2="108" stroke="#B8780F" stroke-width="2"/>
+  <!-- Left eye - glowing trapezoid -->
+  <path d="M17 44 L17 58 L42 54 L42 42Z" fill="#00E5FF"/>
+  <path d="M17 44 L17 58 L42 54 L42 42Z" fill="white" opacity="0.25"/>
+  <path d="M19 46 L19 56 L40 52 L40 44Z" fill="#40F0FF" opacity="0.6"/>
+  <!-- Right eye - glowing trapezoid -->
+  <path d="M83 44 L83 58 L58 54 L58 42Z" fill="#00E5FF"/>
+  <path d="M83 44 L83 58 L58 54 L58 42Z" fill="white" opacity="0.25"/>
+  <path d="M81 46 L81 56 L60 52 L60 44Z" fill="#40F0FF" opacity="0.6"/>
+  <!-- Nose bridge -->
+  <path d="M44 54 L44 70 L50 72 L56 70 L56 54 L50 58Z" fill="#B00E0E"/>
+  <!-- Mouth grille lines -->
+  <line x1="28" y1="78" x2="72" y2="78" stroke="#B8780F" stroke-width="1.5"/>
+  <line x1="30" y1="83" x2="70" y2="83" stroke="#B8780F" stroke-width="1.5"/>
+  <line x1="33" y1="88" x2="67" y2="88" stroke="#B8780F" stroke-width="1.5"/>
+  <!-- Eye glow outer halo -->
+  <path d="M17 44 L17 58 L42 54 L42 42Z" fill="none" stroke="#80F8FF" stroke-width="1" opacity="0.7"/>
+  <path d="M83 44 L83 58 L58 54 L58 42Z" fill="none" stroke="#80F8FF" stroke-width="1" opacity="0.7"/>
+  <!-- Panel separation lines -->
+  <path d="M14 56 Q30 60 42 56" stroke="#A00C0C" stroke-width="1.5" fill="none"/>
+  <path d="M86 56 Q70 60 58 56" stroke="#A00C0C" stroke-width="1.5" fill="none"/>
+</svg>Xoài học giờ
+    </h1>
+  </div>
+
+  <!-- Language Toggle -->
+  <div class="flex items-center gap-2 mb-8 bg-purple-800 bg-opacity-50 rounded-full p-1.5 fade-in-up" style="animation-delay:0.1s">
+    <button id="btn-de" class="lang-btn active px-5 py-2 rounded-full font-bold text-white text-sm" onclick="setLang('de')">
+      🇩🇪 Deutsch
+    </button>
+    <button id="btn-vi" class="lang-btn px-5 py-2 rounded-full font-bold text-white text-sm" onclick="setLang('vi')">
+      🇻🇳 Tiếng Việt
+    </button>
+  </div>
+
+  <!-- Clocks Container -->
+  <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-20 w-full max-w-4xl">
+
+    <!-- Analog Clock Card -->
+    <div class="fade-in-up flex-1 flex flex-col items-center" style="animation-delay:0.2s">
+      <div class="bg-white bg-opacity-15 backdrop-blur-sm rounded-3xl p-8 shadow-2xl flex flex-col items-center gap-6">
+        <h2 id="analog-title" class="text-white font-bold text-xl tracking-wide">🕐 Analoguhr</h2>
+
+        <!-- The Analog Clock (SVG) -->
+        <svg id="analog-clock" viewBox="0 0 280 280" aria-label="Analoge Uhr" role="img">
+          <defs>
+            <radialGradient id="clockFaceBg" cx="35%" cy="30%" r="70%">
+              <stop offset="0%"   stop-color="#fff9f0"/>
+              <stop offset="100%" stop-color="#ffecd2"/>
+            </radialGradient>
+          </defs>
+          <!-- Outer decorative rings -->
+          <circle cx="140" cy="140" r="139" fill="#c1440e" opacity="0.5"/>
+          <circle cx="140" cy="140" r="136" fill="#e76f51"/>
+          <circle cx="140" cy="140" r="128" fill="#f4a261"/>
+          <!-- Clock face -->
+          <circle cx="140" cy="140" r="120" fill="url(#clockFaceBg)"/>
+          <circle cx="140" cy="140" r="120" fill="none" stroke="rgba(0,0,0,0.07)" stroke-width="3"/>
+          <!-- Ticks (injected by JS) -->
+          <g id="clock-ticks"></g>
+          <!-- Numbers (injected by JS) -->
+          <g id="clock-numbers"></g>
+          <!-- Hour hand -->
+          <g id="hour-hand-g" class="hand-group" transform="rotate(0,140,140)">
+            <rect x="136" y="58" width="8" height="90" rx="4" fill="#2d3748"/>
+            <rect x="137.5" y="60" width="3" height="28" rx="1.5" fill="#718096" opacity="0.5"/>
+          </g>
+          <!-- Minute hand -->
+          <g id="minute-hand-g" class="hand-group" transform="rotate(0,140,140)">
+            <rect x="137.5" y="30" width="5" height="118" rx="3" fill="#e53e3e"/>
+            <rect x="138.5" y="32" width="2" height="38" rx="1" fill="#fc8181" opacity="0.6"/>
+          </g>
+          <!-- Center cap -->
+          <circle cx="140" cy="140" r="9" fill="#1a202c"/>
+          <circle cx="140" cy="140" r="5.5" fill="white"/>
+          <circle cx="140" cy="140" r="3"   fill="#2d3748"/>
+        </svg>
+
+        <p id="drag-hint" class="text-purple-200 text-sm font-semibold text-center">
+          ✋ Zeiger ziehen!
+        </p>
+      </div>
+    </div>
+
+    <!-- Right side: Digital + Speak -->
+    <div class="fade-in-up flex-1 flex flex-col items-center gap-8" style="animation-delay:0.35s">
+
+      <!-- Digital Clock Card -->
+      <div class="bg-white bg-opacity-15 backdrop-blur-sm rounded-3xl p-8 shadow-2xl flex flex-col items-center gap-4 w-full max-w-sm">
+        <div class="flex items-center justify-between w-full">
+          <h2 id="digital-title" class="text-white font-bold text-xl tracking-wide">💡 Digitaluhr</h2>
+          <!-- 12h / 24h toggle -->
+          <div class="flex items-center gap-1 bg-purple-900 bg-opacity-60 rounded-full p-1">
+            <button id="btn-12h" class="lang-btn active px-3 py-1 rounded-full font-bold text-white text-xs" onclick="setHourMode(12)">12h</button>
+            <button id="btn-24h" class="lang-btn px-3 py-1 rounded-full font-bold text-white text-xs" onclick="setHourMode(24)">24h</button>
+          </div>
+        </div>
+
+        <div class="digital-screen w-full flex flex-col items-center">
+          <div class="digital-display flex items-center gap-0">
+            <span id="d-hours">12</span>
+            <span class="colon">:</span>
+            <span id="d-minutes">00</span>
+          </div>
+          <div class="text-xs text-green-400 mt-1 tracking-widest opacity-70" id="hh-mm-label">12h · HH : MM</div>
+        </div>
+
+        <!-- Digital spinners -->
+        <div class="flex items-center gap-4 w-full">
+          <!-- Hours -->
+          <div class="flex flex-col items-center flex-1 gap-1">
+            <label id="label-hours" class="text-purple-200 text-xs font-bold mb-1 uppercase tracking-widest">Stunden</label>
+            <button class="spinner-btn" id="btn-h-up"   onpointerdown="startStep('h', 1)"  onpointerup="stopStep()" onpointerleave="stopStep()">&#9650;</button>
+            <div id="spinner-h-val" class="spinner-val">12</div>
+            <button class="spinner-btn" id="btn-h-down" onpointerdown="startStep('h', -1)" onpointerup="stopStep()" onpointerleave="stopStep()">&#9660;</button>
+          </div>
+          <div class="text-white text-3xl font-black self-center pb-1">:</div>
+          <!-- Minutes -->
+          <div class="flex flex-col items-center flex-1 gap-1">
+            <label id="label-minutes" class="text-purple-200 text-xs font-bold mb-1 uppercase tracking-widest">Minuten</label>
+            <button class="spinner-btn" id="btn-m-up"   onpointerdown="startStep('m', 1)"  onpointerup="stopStep()" onpointerleave="stopStep()">&#9650;</button>
+            <div id="spinner-m-val" class="spinner-val">00</div>
+            <button class="spinner-btn" id="btn-m-down" onpointerdown="startStep('m', -1)" onpointerup="stopStep()" onpointerleave="stopStep()">&#9660;</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Current Time Label -->
+      <div id="time-label" class="text-center px-6 py-3 bg-white bg-opacity-20 rounded-2xl text-white font-bold text-lg min-w-64 shadow-lg">
+        <span id="time-text">Es ist zwölf Uhr</span>
+      </div>
+
+      <!-- Speak Button -->
+      <button id="speak-btn" class="speak-btn bg-yellow-400 hover:bg-yellow-300 text-purple-900 font-black text-xl px-10 py-5 rounded-2xl shadow-xl flex items-center gap-3"
+        onclick="speakTime()" aria-label="Zeit vorlesen">
+        <span class="text-3xl">🔊</span>
+        <span id="speak-label">Uhrzeit vorlesen!</span>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- Fun tips -->
+  <div class="mt-10 text-center fade-in-up" style="animation-delay:0.5s">
+    <p class="text-purple-200 text-sm font-semibold opacity-80">
+      💡 <span id="tip-text">Tipp: Drehe die Zeiger und übe die Uhrzeit!</span>
+    </p>
+  </div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let currentHours = 12;    // always 1–12 (for analog)
+let currentHours24 = 12;  // 0–23 (for 24h digital display)
+let currentMinutes = 0;
+let lang = 'de';
+let hourMode = 12;        // 12 | 24
+
+// ============================================================
+// BUILD ANALOG CLOCK FACE (SVG)
+// ============================================================
+(function buildClockFace() {
+  const NS     = 'http://www.w3.org/2000/svg';
+  const cx = 140, cy = 140, r = 120;
+  const ticksG = document.getElementById('clock-ticks');
+  const numsG  = document.getElementById('clock-numbers');
+
+  // 60 tick marks as SVG lines
+  for (let i = 0; i < 60; i++) {
+    const isMajor = i % 5 === 0;
+    const angle   = (i * 6 - 90) * Math.PI / 180;
+    const r1 = isMajor ? r - 14 : r - 7;
+    const r2 = r - 1;
+    const line = document.createElementNS(NS, 'line');
+    line.setAttribute('x1', cx + r1 * Math.cos(angle));
+    line.setAttribute('y1', cy + r1 * Math.sin(angle));
+    line.setAttribute('x2', cx + r2 * Math.cos(angle));
+    line.setAttribute('y2', cy + r2 * Math.sin(angle));
+    line.setAttribute('stroke',         isMajor ? '#1a202c'  : '#94a3b8');
+    line.setAttribute('stroke-width',   isMajor ? '3.5'      : '1.5');
+    line.setAttribute('stroke-linecap', 'round');
+    ticksG.appendChild(line);
+  }
+
+  // 12 hour numbers as SVG text
+  [12,1,2,3,4,5,6,7,8,9,10,11].forEach((n, i) => {
+    const angle = (i * 30 - 90) * Math.PI / 180;
+    const nr    = 97;
+    const text  = document.createElementNS(NS, 'text');
+    text.setAttribute('x',                 cx + nr * Math.cos(angle));
+    text.setAttribute('y',                 cy + nr * Math.sin(angle));
+    text.setAttribute('text-anchor',       'middle');
+    text.setAttribute('dominant-baseline', 'central');
+    text.setAttribute('font-size',         '17');
+    text.setAttribute('font-weight',       '800');
+    text.setAttribute('font-family',       'Nunito, sans-serif');
+    text.setAttribute('fill',              '#2d3748');
+    text.textContent = n;
+    numsG.appendChild(text);
+  });
+})();
+
+// ============================================================
+// RENDER CLOCK HANDS
+// ============================================================
+function renderHands(h, m) {
+  const minuteDeg = m * 6;
+  const hourDeg   = (h % 12) * 30 + m * 0.5;
+  document.getElementById('hour-hand-g').setAttribute('transform',   `rotate(${hourDeg},   140, 140)`);
+  document.getElementById('minute-hand-g').setAttribute('transform', `rotate(${minuteDeg}, 140, 140)`);
+}
+
+// ============================================================
+// RENDER DIGITAL DISPLAY
+// ============================================================
+function renderDigital(h12, h24, m) {
+  const displayH = hourMode === 24 ? h24 : h12;
+  document.getElementById('d-hours').textContent      = String(displayH).padStart(2, '0');
+  document.getElementById('d-minutes').textContent    = String(m).padStart(2, '0');
+  document.getElementById('spinner-h-val').textContent = String(displayH).padStart(2, '0');
+  document.getElementById('spinner-m-val').textContent = String(m).padStart(2, '0');
+}
+
+// ============================================================
+// UPDATE ALL — single source of truth
+// h is either 1–12 (12h input/drag) or 0–23 (24h input)
+// fromMode: 12 | 24 — tells us how to interpret h
+// ============================================================
+function updateAll(h, m, fromMode) {
+  fromMode = fromMode || 12;
+  currentMinutes = Math.max(0, Math.min(59, m));
+
+  if (fromMode === 24) {
+    currentHours24 = ((h % 24) + 24) % 24;           // 0–23
+    currentHours   = currentHours24 % 12 || 12;       // 1–12
+  } else {
+    currentHours   = ((h % 12) + 12) % 12 || 12;     // 1–12
+    currentHours24 = currentHours;                    // keep same (AM, no AM/PM info)
+  }
+
+  renderHands(currentHours, currentMinutes);
+  renderDigital(currentHours, currentHours24, currentMinutes);
+  updateTimeLabel();
+}
+
+// ============================================================
+// TIME LABEL
+// ============================================================
+function updateTimeLabel() {
+  document.getElementById('time-text').textContent = buildTimeString(currentHours, currentMinutes, lang);
+}
+
+function buildTimeString(h, m, language) {
+  if (language === 'de') return buildGerman(h, m);
+  return buildVietnamese(h, m);
+}
+
+// ---- German time ----
+const DE_NUMS = ['null','ein','zwei','drei','vier','fünf','sechs','sieben','acht','neun','zehn','elf','zwölf',
+  'dreizehn','vierzehn','fünfzehn','sechzehn','siebzehn','achtzehn','neunzehn','zwanzig'];
+const DE_HOURS = ['zwölf','ein','zwei','drei','vier','fünf','sechs','sieben','acht','neun','zehn','elf','zwölf'];
+
+function buildGerman(h, m) {
+  const hName = DE_HOURS[h % 12];
+  if (m === 0)  return `Es ist ${hName} Uhr`;
+  if (m === 15) return `Es ist Viertel nach ${hName}`;
+  if (m === 30) return `Es ist halb ${DE_HOURS[(h % 12) + 1] || 'eins'}`;
+  if (m === 45) return `Es ist Viertel vor ${DE_HOURS[(h % 12) + 1] || 'eins'}`;
+  if (m < 30)   return `Es ist ${minuteNameDE(m)} Minuten nach ${hName}`;
+  return `Es ist ${minuteNameDE(60 - m)} Minuten vor ${DE_HOURS[(h % 12) + 1] || 'eins'}`;
+}
+
+function minuteNameDE(n) {
+  if (n <= 20) return DE_NUMS[n];
+  const ones = n % 10;
+  if (ones === 0) return 'dreißig'; // only 30 hits here (>20, ones===0)
+  return DE_NUMS[ones] + 'unddreißig';
+}
+
+// ---- Vietnamese numbers ----
+const VI_ONES  = ['không','một','hai','ba','bốn','năm','sáu','bảy','tám','chín'];
+const VI_TEENS = ['mười','mười một','mười hai','mười ba','mười bốn','mười lăm',
+                  'mười sáu','mười bảy','mười tám','mười chín'];
+
+function viNumber(n) {
+  if (n < 10) return VI_ONES[n];
+  if (n < 20) return VI_TEENS[n - 10];
+  const tens = Math.floor(n / 10);
+  const ones = n % 10;
+  const tensWord = VI_ONES[tens] + ' mươi';
+  if (ones === 0) return tensWord;
+  if (ones === 1) return tensWord + ' mốt';
+  if (ones === 5) return tensWord + ' lăm';
+  return tensWord + ' ' + VI_ONES[ones];
+}
+
+// ---- Vietnamese time ----
+function buildVietnamese(h, m) {
+  const hWord = viNumber(h);
+  if (m === 0)  return `Bây giờ là ${hWord} giờ đúng`;
+  if (m === 30) return `Bây giờ là ${hWord} giờ rưỡi`;
+  return `Bây giờ là ${hWord} giờ ${viNumber(m)} phút`;
+}
+
+// ============================================================
+// SPEAK TIME
+// ============================================================
+let gttsAudio = null; // reuse audio element
+
+function speakTime() {
+  // Always stop any ongoing Web Speech API audio first
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+
+  const text = buildTimeString(currentHours, currentMinutes, lang);
+  const btn  = document.getElementById('speak-btn');
+
+  if (lang === 'vi') {
+    // --- Vietnamese: Google Translate TTS ---
+    if (gttsAudio) {
+      gttsAudio.onended = null;
+      gttsAudio.onerror = null;
+      gttsAudio.pause();
+      gttsAudio.src = '';
+    }
+    const url = 'https://translate.google.com/translate_tts?ie=UTF-8'
+      + '&q=' + encodeURIComponent(text)
+      + '&tl=vi&ttsspeed=0.8&client=tw-ob';
+    gttsAudio = new Audio(url);
+    gttsAudio.volume = 1;
+    btn.classList.add('speaking');
+    gttsAudio.onended = () => btn.classList.remove('speaking');
+    gttsAudio.onerror = () => btn.classList.remove('speaking');
+    gttsAudio.play().catch(() => btn.classList.remove('speaking'));
+  } else {
+    // --- German: Web Speech API (good native support on Windows/macOS) ---
+    speakWebSpeech(text, 'de-DE');
+  }
+}
+
+function speakWebSpeech(text, langCode) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const btn  = document.getElementById('speak-btn');
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang  = langCode;
+  utter.rate  = 0.85;
+  utter.pitch = 1.1;
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = voices.find(v => v.lang.startsWith(langCode));
+  if (preferred) utter.voice = preferred;
+  btn.classList.add('speaking');
+  utter.onend  = () => btn.classList.remove('speaking');
+  utter.onerror = () => btn.classList.remove('speaking');
+  window.speechSynthesis.speak(utter);
+}
+
+// Pre-warm voice list
+if (window.speechSynthesis) {
+  window.speechSynthesis.onvoiceschanged = () => {};
+}
+
+// ============================================================
+// LANGUAGE TOGGLE
+// ============================================================
+function setLang(l) {
+  lang = l;
+  document.getElementById('btn-de').classList.toggle('active', l === 'de');
+  document.getElementById('btn-vi').classList.toggle('active', l === 'vi');
+
+  const de = l === 'de';
+  document.getElementById('analog-title').textContent  = de ? '🕐 Analoguhr'          : '🕐 Đồng hồ kim';
+  document.getElementById('drag-hint').textContent     = de ? '✋ Zeiger ziehen!'       : '✋ Kéo kim đồng hồ!';
+  document.getElementById('digital-title').textContent = de ? '💡 Digitaluhr'          : '💡 Đồng hồ điện tử';
+  document.getElementById('label-hours').textContent   = de ? 'Stunden'                : 'Giờ';
+  document.getElementById('label-minutes').textContent = de ? 'Minuten'                : 'Phút';
+  document.getElementById('speak-label').textContent   = de ? 'Uhrzeit vorlesen!'      : 'Đọc giờ cho tôi!';
+  document.getElementById('tip-text').textContent      = de ? 'Tipp: Drehe die Zeiger und übe die Uhrzeit!' : 'Mẹo: Kéo kim đồng hồ để luyện xem giờ!';
+  updateTimeLabel();
+}
+
+// ============================================================
+// ANALOG CLOCK — DRAG INTERACTION
+// ============================================================
+(function setupDrag() {
+  const clock      = document.getElementById('analog-clock');
+  const hourHandG  = document.getElementById('hour-hand-g');
+  const minHandG   = document.getElementById('minute-hand-g');
+
+  let dragging = null; // 'hour' | 'minute'
+
+  function getAngle(e) {
+    const rect   = clock.getBoundingClientRect();
+    const cx     = rect.left + rect.width  / 2;
+    const cy     = rect.top  + rect.height / 2;
+    const client = e.touches ? e.touches[0] : e;
+    const dx     = client.clientX - cx;
+    const dy     = client.clientY - cy;
+    let angle    = Math.atan2(dy, dx) * 180 / Math.PI + 90;
+    if (angle < 0) angle += 360;
+    return angle;
+  }
+
+  function onStart(hand) {
+    return function(e) {
+      e.preventDefault();
+      dragging = hand;
+      document.getElementById(hand + '-hand-g').classList.add('dragging');
+    };
+  }
+
+  function onMove(e) {
+    if (!dragging) return;
+    e.preventDefault();
+    const angle = getAngle(e);
+
+    if (dragging === 'minute') {
+      const newM = Math.round(angle / 6) % 60;
+      let newH = currentHours;
+      if (currentMinutes > 45 && newM < 15) {
+        newH = (currentHours % 12) + 1;
+      } else if (currentMinutes < 15 && newM > 45) {
+        newH = currentHours - 1;
+        if (newH < 1) newH = 12;
+      }
+      updateAll(newH, newM, 12);
+    } else {
+      const newH = Math.round(angle / 30) % 12 || 12;
+      updateAll(newH, currentMinutes, 12);
+    }
+  }
+
+  function onEnd() {
+    if (dragging) {
+      document.getElementById(dragging + '-hand-g').classList.remove('dragging');
+    }
+    dragging = null;
+  }
+
+  // Mouse events
+  hourHandG.addEventListener('mousedown',  onStart('hour'));
+  minHandG.addEventListener('mousedown',   onStart('minute'));
+  document.addEventListener('mousemove',   onMove);
+  document.addEventListener('mouseup',     onEnd);
+
+  // Touch events
+  hourHandG.addEventListener('touchstart',  onStart('hour'),   { passive:false });
+  minHandG.addEventListener('touchstart',   onStart('minute'), { passive:false });
+  document.addEventListener('touchmove',    onMove,            { passive:false });
+  document.addEventListener('touchend',     onEnd);
+})();
+
+// ============================================================
+// DIGITAL SPINNER — step & long-press
+// ============================================================
+let _stepTimer = null;
+let _stepInterval = null;
+
+function stepHours(delta) {
+  let h;
+  if (hourMode === 24) {
+    h = ((currentHours24 + delta) + 24) % 24;
+    updateAll(h, currentMinutes, 24);
+  } else {
+    h = currentHours + delta;
+    if (h > 12) h = 1;
+    if (h < 1)  h = 12;
+    updateAll(h, currentMinutes, 12);
+  }
+}
+
+function stepMinutes(delta) {
+  let m = currentMinutes + delta;
+  let h = hourMode === 24 ? currentHours24 : currentHours;
+  if (m > 59) { m = 0;  stepHours(1);  return; }
+  if (m < 0)  { m = 59; stepHours(-1); return; }
+  updateAll(h, m, hourMode);
+}
+
+function startStep(field, delta) {
+  // Fire once immediately
+  field === 'h' ? stepHours(delta) : stepMinutes(delta);
+  // Then after 400ms hold, repeat every 120ms
+  _stepTimer = setTimeout(() => {
+    _stepInterval = setInterval(() => {
+      field === 'h' ? stepHours(delta) : stepMinutes(delta);
+    }, 120);
+  }, 400);
+}
+
+function stopStep() {
+  clearTimeout(_stepTimer);
+  clearInterval(_stepInterval);
+  _stepTimer = null;
+  _stepInterval = null;
+}
+
+// ============================================================
+// 12h / 24h MODE TOGGLE
+// ============================================================
+function setHourMode(mode) {
+  hourMode = mode;
+  document.getElementById('hh-mm-label').textContent = mode === 24 ? '24h · HH : MM' : '12h · HH : MM';
+  document.getElementById('btn-12h').classList.toggle('active', mode === 12);
+  document.getElementById('btn-24h').classList.toggle('active', mode === 24);
+  renderDigital(currentHours, currentHours24, currentMinutes);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+updateAll(12, 0, 12);
+</script>
+</body>
+</html>
