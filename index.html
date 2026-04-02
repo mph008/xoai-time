@@ -24,11 +24,16 @@
       max-width: 280px;
       touch-action: none;
       user-select: none;
+      -webkit-user-select: none;
       cursor: grab;
       filter: drop-shadow(0 12px 28px rgba(0,0,0,0.38));
     }
     #analog-clock:active { cursor: grabbing; }
-    .hand-group { cursor: grab; }
+    .hand-group {
+      cursor: grab;
+      touch-action: none;
+      pointer-events: all;
+    }
     .hand-group:active { cursor: grabbing; }
     .hand-group.dragging { filter: drop-shadow(0 0 8px rgba(255,220,50,0.95)); }
 
@@ -492,7 +497,18 @@ function speakTime() {
   const btn  = document.getElementById('speak-btn');
 
   if (lang === 'vi') {
-    // --- Vietnamese: Google Translate TTS ---
+    // iOS/macOS Safari has a good built-in vi-VN voice via Web Speech API.
+    // Google Translate TTS is blocked by Safari (CORS/autoplay policy).
+    // Strategy: use Web Speech if vi voice available, else fall back to Google TTS.
+    if (window.speechSynthesis) {
+      const voices = window.speechSynthesis.getVoices();
+      const viVoice = voices.find(v => v.lang.startsWith('vi'));
+      if (viVoice) {
+        speakWebSpeech(text, 'vi-VN');
+        return;
+      }
+    }
+    // No vi-VN voice found (desktop Chrome/Firefox without extra voices)
     if (gttsAudio) {
       gttsAudio.onended = null;
       gttsAudio.onerror = null;
@@ -506,8 +522,8 @@ function speakTime() {
     gttsAudio.volume = 1;
     btn.classList.add('speaking');
     gttsAudio.onended = () => btn.classList.remove('speaking');
-    gttsAudio.onerror = () => btn.classList.remove('speaking');
-    gttsAudio.play().catch(() => btn.classList.remove('speaking'));
+    gttsAudio.onerror = () => { btn.classList.remove('speaking'); speakWebSpeech(text, 'vi-VN'); };
+    gttsAudio.play().catch(() => { btn.classList.remove('speaking'); speakWebSpeech(text, 'vi-VN'); });
   } else {
     // --- German: Web Speech API (good native support on Windows/macOS) ---
     speakWebSpeech(text, 'de-DE');
@@ -531,9 +547,10 @@ function speakWebSpeech(text, langCode) {
   window.speechSynthesis.speak(utter);
 }
 
-// Pre-warm voice list
+// Pre-warm voice list (Safari loads voices asynchronously)
 if (window.speechSynthesis) {
-  window.speechSynthesis.onvoiceschanged = () => {};
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
 }
 
 // ============================================================
@@ -556,40 +573,40 @@ function setLang(l) {
 }
 
 // ============================================================
-// ANALOG CLOCK — DRAG INTERACTION
+// ANALOG CLOCK — DRAG (Pointer Events API)
+// Pointer Events unify mouse + touch + stylus and work reliably
+// on iOS Safari (unlike raw touchstart on SVG <g> elements).
+// setPointerCapture ensures move events keep firing even when
+// the finger moves outside the hand element.
 // ============================================================
 (function setupDrag() {
-  const clock      = document.getElementById('analog-clock');
-  const hourHandG  = document.getElementById('hour-hand-g');
-  const minHandG   = document.getElementById('minute-hand-g');
+  const clock     = document.getElementById('analog-clock');
+  const hourHandG = document.getElementById('hour-hand-g');
+  const minHandG  = document.getElementById('minute-hand-g');
 
-  let dragging = null; // 'hour' | 'minute'
+  let dragging = null;
 
   function getAngle(e) {
-    const rect   = clock.getBoundingClientRect();
-    const cx     = rect.left + rect.width  / 2;
-    const cy     = rect.top  + rect.height / 2;
-    const client = e.touches ? e.touches[0] : e;
-    const dx     = client.clientX - cx;
-    const dy     = client.clientY - cy;
-    let angle    = Math.atan2(dy, dx) * 180 / Math.PI + 90;
+    const rect = clock.getBoundingClientRect();
+    const cx   = rect.left + rect.width  / 2;
+    const cy   = rect.top  + rect.height / 2;
+    let angle  = Math.atan2(e.clientY - cy, e.clientX - cx) * 180 / Math.PI + 90;
     if (angle < 0) angle += 360;
     return angle;
   }
 
-  function onStart(hand) {
+  function onPointerDown(hand) {
     return function(e) {
       e.preventDefault();
       dragging = hand;
-      document.getElementById(hand + '-hand-g').classList.add('dragging');
+      this.setPointerCapture(e.pointerId);
+      this.classList.add('dragging');
     };
   }
 
-  function onMove(e) {
+  function onPointerMove(e) {
     if (!dragging) return;
-    e.preventDefault();
     const angle = getAngle(e);
-
     if (dragging === 'minute') {
       const newM = Math.round(angle / 6) % 60;
       let newH = currentHours;
@@ -601,29 +618,20 @@ function setLang(l) {
       }
       updateAll(newH, newM, 12);
     } else {
-      const newH = Math.round(angle / 30) % 12 || 12;
-      updateAll(newH, currentMinutes, 12);
+      updateAll(Math.round(angle / 30) % 12 || 12, currentMinutes, 12);
     }
   }
 
-  function onEnd() {
-    if (dragging) {
-      document.getElementById(dragging + '-hand-g').classList.remove('dragging');
-    }
+  function onPointerUp() {
+    if (dragging) document.getElementById(dragging + '-hand-g').classList.remove('dragging');
     dragging = null;
   }
 
-  // Mouse events
-  hourHandG.addEventListener('mousedown',  onStart('hour'));
-  minHandG.addEventListener('mousedown',   onStart('minute'));
-  document.addEventListener('mousemove',   onMove);
-  document.addEventListener('mouseup',     onEnd);
-
-  // Touch events
-  hourHandG.addEventListener('touchstart',  onStart('hour'),   { passive:false });
-  minHandG.addEventListener('touchstart',   onStart('minute'), { passive:false });
-  document.addEventListener('touchmove',    onMove,            { passive:false });
-  document.addEventListener('touchend',     onEnd);
+  hourHandG.addEventListener('pointerdown', onPointerDown('hour'));
+  minHandG.addEventListener('pointerdown',  onPointerDown('minute'));
+  document.addEventListener('pointermove',   onPointerMove);
+  document.addEventListener('pointerup',     onPointerUp);
+  document.addEventListener('pointercancel', onPointerUp);
 })();
 
 // ============================================================
